@@ -314,6 +314,12 @@ int process_key (int board[][BOARD_SIZE], int key)
 void add_extra_num(int board[][BOARD_SIZE])
 {
     int row, col;
+    int val = 2;
+
+    /* Approximately 10% times should be 4 */
+    if (rand() % 11 > 9)
+	val = 4;
+
     while (1)
     {
 	//TODO: Better random number generator
@@ -321,7 +327,7 @@ void add_extra_num(int board[][BOARD_SIZE])
 	col = rand() % BOARD_SIZE;
 	if (board[row][col])
 	    continue;
-	board[row][col] = 2;
+	board[row][col] = val;
 	break;
     }
 }
@@ -403,7 +409,6 @@ int main()
     init_screen();
     start_new_board(g_board);
     
-
     //Main Game loop
     do
     {
@@ -420,7 +425,7 @@ int main()
 	//printw("\nChar is %d\n", c);
 	printw("\nHOW TO PLAY: Use your arrow keys to move the tiles. \n"
 		"When two tiles with the same number touch, they mergee into one!\n");
-	printw("\nPress Ctrl-C to exit any time. Press 'n' for new Gameme\n");
+	printw("\nPress Ctrl-C to exit any time. Press 'n' for new Game.\n");
 	refresh();
 	c = getch();
 	if (c == CTRL_C)
