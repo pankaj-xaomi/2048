@@ -95,45 +95,56 @@ void init_screen()
 
 int process_row (int *row, int key)
 {
-    int i = 0;
+    int i = 0, j = 0;
     int status = 0;
     if (key == LEFT_KEY)
     {
-	//We will go 2 passes through the row
-
-	//First pass: Try to merge as much as possible
-	for (i = 0; i < BOARD_SIZE-1; i++)
+	//We will go 3 passes through the row
+	//1. Put everything to left
+	//2. Merge everything if possible
+	//3. Again put everything to left if there is any space created because
+	//   of merge.
+	for (j = 0; j < BOARD_SIZE; j++)
 	{
-	    if (row[i] == 0)
-		continue;
-
-	    if (row[i+1] == 0)
+	    for (i = BOARD_SIZE-1; i>0; i--)
 	    {
-		row[i+1] = row[i];
-		row[i] = 0;
-	    }
-	    else if (row[i+1] == row[i])
-	    {
-		row[i] *= 2;
-		row[i+1] = 0;
-		g_score += row[i];
-		status++;
-		//Merge must happen only once for tuples.
-		i++;
+		if (row[i] == 0)
+		    continue;
+		if (row[i-1] == 0)
+		{
+		    row[i-1] = row[i];
+		    row[i] = 0;
+		    status++;
+		}
 	    }
 	}
 
-	//Second pass: Fill the void created because of merge
-	for (i = BOARD_SIZE-1; i > 0; i--)
+	//Now try to merge everything
+	for (i=0; i < BOARD_SIZE-1; i++)
 	{
-	    if (row[i] == 0)
-		continue;
-
-	    if (row[i-1] == 0)
+	    if (row[i] == row[i+1])
 	    {
-		row[i-1] = row[i];
-		row[i] = 0;
+		row[i] *=  2;
+		row[i+1] = 0;
+		g_score += row[i];
+		i++;
 		status++;
+	    }
+	}
+
+	//Again shift everything in left
+	for (j = 0; j < BOARD_SIZE; j++)
+	{
+	    for (i = BOARD_SIZE-1; i>0; i--)
+	    {
+		if (row[i] == 0)
+		    continue;
+		if (row[i-1] == 0)
+		{
+		    row[i-1] = row[i];
+		    row[i] = 0;
+		    status++;
+		}
 	    }
 	}
     }
@@ -142,41 +153,55 @@ int process_row (int *row, int key)
 	//TODO: Look for an elegent solution to handle left/right key in same
 	//function/loop
 	
-	//We will go 2 passes through the row
 
-	//First pass: Try to merge&shift as much as possible
-	for (i = BOARD_SIZE-1; i > 0; i--)
+	//We will go 3 passes through the row
+	//1. Put everything to right
+	//2. Merge everything if possible
+	//3. Again put everything to right if there is any space created because
+	//   of merge.
+	for (j = 0; j < BOARD_SIZE; j++)
 	{
-	    if (row[i] == 0)
-		continue;
+	    for (i = 0; i < BOARD_SIZE-1; i++)
+	    {
+		if (row[i] == 0)
+		    continue;
 
-	    if (row[i-1] == 0)
-	    {
-		row[i-1] = row[i];
-		row[i] = 0;
-	    }
-	    else if (row[i-1] == row[i])
-	    {
-		row[i] *= 2;
-		row[i-1] = 0;
-		g_score += row[i];
-		status++;
-		//Merge must happen only once for tuples.
-		i--;
+		if (row[i+1] == 0)
+		{
+		    row[i+1] = row[i];
+		    row[i] = 0;
+		    status++;
+		}
 	    }
 	}
 
-	//Second pass: Fill the void created because of merge
-	for (i = 0; i < BOARD_SIZE-1; i++)
+	//Now try to merge everything
+	for (i = BOARD_SIZE-1; i>0; i--)
 	{
-	    if (row[i] == 0)
-		continue;
-
-	    if (row[i+1] == 0)
+	    if (row[i] == row[i-1])
 	    {
-		row[i+1] = row[i];
-		row[i] = 0;
+		row[i] *=  2;
+		row[i-1] = 0;
+		g_score += row[i];
+		i--;
 		status++;
+	    }
+	}
+
+	//Again shift everything to right
+	for (j = 0; j < BOARD_SIZE; j++)
+	{
+	    for (i = 0; i < BOARD_SIZE-1; i++)
+	    {
+		if (row[i] == 0)
+		    continue;
+
+		if (row[i+1] == 0)
+		{
+		    row[i+1] = row[i];
+		    row[i] = 0;
+		    status++;
+		}
 	    }
 	}
     }
