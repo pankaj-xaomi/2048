@@ -5,6 +5,8 @@
 
 #define BOARD_SIZE 	4
 
+#define WINNING_SCORE	2048
+
 #define LEFT_KEY	260
 #define RIGHT_KEY	261
 #define UP_KEY		259
@@ -14,6 +16,7 @@
 
 int g_board[BOARD_SIZE][BOARD_SIZE];
 int g_score;
+int g_won;
 
 void print_hborder()
 {
@@ -323,9 +326,73 @@ void add_extra_num(int board[][BOARD_SIZE])
     }
 }
 
+int check_if_merge_possible (int *board)
+{
+    int i = 0;
+    for (i = 0; i < BOARD_SIZE-1; i++)
+    {
+	if (board[i] == 0)
+	    continue;
+
+	if (board[i] == board[i+1])
+	{
+	    return 1;
+	}
+    }
+
+    return 0;
+}
+
 int is_game_finished(int board[][BOARD_SIZE])
 {
-    return 0;
+    //First check if any of cell contains winning score
+    int i = 0, j = 0;
+    int any_zero = 0;	//Check if there is any 0 in board
+    int row[BOARD_SIZE];
+
+    for (i = 0; i < BOARD_SIZE; i++)
+    {
+	for (j = 0; j < BOARD_SIZE; j++)
+	{
+	    if (board[i][j] == WINNING_SCORE)
+	    {
+		g_won = 1;
+		return 1;
+	    }
+
+	    if (board[i][j] == 0)
+		any_zero = 1;
+	}
+    }
+
+    /* There is atleast one zero in board. Game can continue */
+    if (any_zero)
+	return 0;
+ 
+    /* Check if there is any possibility of merge in the board
+     * It is basically a check in two adjacent cells are same or not  */
+
+    //Start with rows
+    for (i = 0; i < BOARD_SIZE; i++)
+    {
+	if (check_if_merge_possible(board[i]))
+	    return 0;
+    }
+
+    for (i = 0; i < BOARD_SIZE; i++)
+    {
+	for (j = 0; j < BOARD_SIZE; j++)
+	{
+	    row[j] = board[j][i];
+	}
+
+	if (check_if_merge_possible (row))
+	    return 0;
+    }
+
+    /* No further moves possible. */
+    return 1;
+
 }
 
 int main()
@@ -344,6 +411,10 @@ int main()
 	printw("\nScore: %d\n", g_score);
 	if (finished)
 	{
+	    if (g_won)
+	    {
+		printw("\nYou Won! Congrats :)");
+	    }
 	    printw("\nGame finished!\n");
 	}
 	//printw("\nChar is %d\n", c);
@@ -359,6 +430,7 @@ int main()
 	{
 	    finished = 0;
 	    g_score = 0;
+	    g_won = 0;
 	    start_new_board(g_board);
 	}
 
@@ -374,7 +446,6 @@ int main()
     } while (1);
 
     endwin();
-    //printf ("Got char %x \n", c);
 
     return 0;
 }
