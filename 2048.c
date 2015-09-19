@@ -121,6 +121,7 @@ int shift_all_left (int *row)
     int i = 0, j = 0;
     for (j = 0; j < BOARD_SIZE; j++)
     {
+	int swapped = 0;
 	for (i = BOARD_SIZE-1; i>0; i--)
 	{
 	    if (row[i] == 0)
@@ -130,8 +131,13 @@ int shift_all_left (int *row)
 		row[i-1] = row[i];
 		row[i] = 0;
 		status++;
+		swapped = 1;
 	    }
 	}
+
+	/* If no swap happenned, it is already shifted */
+	if (swapped == 0)
+	    break;
     }
 
     return status;
