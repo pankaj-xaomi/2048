@@ -3,6 +3,9 @@
 #include <ncurses.h>
 #include <string.h>
 
+/******************************************************
+ * 			Constants 		      *
+ *****************************************************/
 #define BOARD_SIZE 	4
 
 #define WINNING_SCORE	2048
@@ -14,15 +17,25 @@
 #define CTRL_C		3
 #define NEW_GAME	110
 
+/******************************************************
+ * 		Global Variables	      	      *
+ *****************************************************/
 int g_board[BOARD_SIZE][BOARD_SIZE];
 int g_score;
 int g_won;
 
+
+/******************************************************
+ * 	Functions for writing on screen       	      *
+ *****************************************************/
 void print_hborder()
 {
     int num_chars = BOARD_SIZE * 6 + (BOARD_SIZE + 1);
     char *buf = calloc (num_chars + 1, 1);
-    //TODO Handle NULL pointer case
+    if (buf == NULL)
+    {
+	return;
+    }
     memset(buf, '-', num_chars);
     printw ("%s\n", buf);
     free(buf);
@@ -59,7 +72,17 @@ void print_board(int board[][BOARD_SIZE])
     refresh();
 }
 
-void start_new_board (int board[][BOARD_SIZE])
+void init_screen()
+{
+    WINDOW *win = initscr();
+    raw();
+    keypad(stdscr, TRUE);
+}
+
+/******************************************************
+ * 	           Game Logic			      *
+ *****************************************************/
+void start_new_game (int board[][BOARD_SIZE])
 {
     int i = 0, j = 0;
     int row, col;
@@ -88,13 +111,56 @@ void start_new_board (int board[][BOARD_SIZE])
     }
 }
 
-void init_screen()
+
+/******************************************************
+ * 	       Game Logic: Key Processing      	      *
+ *****************************************************/
+int shift_all_left (int *row)
 {
-    WINDOW *win = initscr();
-    raw();
-    keypad(stdscr, TRUE);
-    srand(getpid());
+    int status = 0;
+    int i = 0, j = 0;
+    for (j = 0; j < BOARD_SIZE; j++)
+    {
+	for (i = BOARD_SIZE-1; i>0; i--)
+	{
+	    if (row[i] == 0)
+		continue;
+	    if (row[i-1] == 0)
+	    {
+		row[i-1] = row[i];
+		row[i] = 0;
+		status++;
+	    }
+	}
+    }
+
+    return status;
 }
+
+int shift_all_right (int *row)
+{
+    int status = 0;
+    int i = 0, j = 0;
+
+    for (j = 0; j < BOARD_SIZE; j++)
+    {
+	for (i = 0; i < BOARD_SIZE-1; i++)
+	{
+	    if (row[i] == 0)
+		continue;
+
+	    if (row[i+1] == 0)
+	    {
+		row[i+1] = row[i];
+		row[i] = 0;
+		status++;
+	    }
+	}
+    }
+
+    return status;
+}
+
 
 int process_row (int *row, int key)
 {
@@ -107,21 +173,7 @@ int process_row (int *row, int key)
 	//2. Merge everything if possible
 	//3. Again put everything to left if there is any space created because
 	//   of merge.
-	for (j = 0; j < BOARD_SIZE; j++)
-	{
-	    for (i = BOARD_SIZE-1; i>0; i--)
-	    {
-		if (row[i] == 0)
-		    continue;
-		if (row[i-1] == 0)
-		{
-		    row[i-1] = row[i];
-		    row[i] = 0;
-		    status++;
-		}
-	    }
-	}
-
+	status = shift_all_left (row);
 	//Now try to merge everything
 	for (i=0; i < BOARD_SIZE-1; i++)
 	{
@@ -134,50 +186,18 @@ int process_row (int *row, int key)
 		status++;
 	    }
 	}
-
 	//Again shift everything in left
-	for (j = 0; j < BOARD_SIZE; j++)
-	{
-	    for (i = BOARD_SIZE-1; i>0; i--)
-	    {
-		if (row[i] == 0)
-		    continue;
-		if (row[i-1] == 0)
-		{
-		    row[i-1] = row[i];
-		    row[i] = 0;
-		    status++;
-		}
-	    }
-	}
+	status += shift_all_left (row);
     }
     else
     {
-	//TODO: Look for an elegent solution to handle left/right key in same
-	//function/loop
-	
-
 	//We will go 3 passes through the row
 	//1. Put everything to right
 	//2. Merge everything if possible
 	//3. Again put everything to right if there is any space created because
 	//   of merge.
-	for (j = 0; j < BOARD_SIZE; j++)
-	{
-	    for (i = 0; i < BOARD_SIZE-1; i++)
-	    {
-		if (row[i] == 0)
-		    continue;
 
-		if (row[i+1] == 0)
-		{
-		    row[i+1] = row[i];
-		    row[i] = 0;
-		    status++;
-		}
-	    }
-	}
-
+	status = shift_all_right (row);
 	//Now try to merge everything
 	for (i = BOARD_SIZE-1; i>0; i--)
 	{
@@ -190,88 +210,44 @@ int process_row (int *row, int key)
 		status++;
 	    }
 	}
-
-	//Again shift everything to right
-	for (j = 0; j < BOARD_SIZE; j++)
-	{
-	    for (i = 0; i < BOARD_SIZE-1; i++)
-	    {
-		if (row[i] == 0)
-		    continue;
-
-		if (row[i+1] == 0)
-		{
-		    row[i+1] = row[i];
-		    row[i] = 0;
-		    status++;
-		}
-	    }
-	}
+	status += shift_all_right(row);
     }
     return status;
 }
 
-int process_left_key(int board[][BOARD_SIZE])
+int process_left_right_key(int board[][BOARD_SIZE], int key)
 {
     int i = 0;
     int status = 0;
     for (i = 0; i < BOARD_SIZE; i++)
     {
-	status += process_row(board[i], LEFT_KEY);
+	status += process_row(board[i], key);
     }
 
     return status;
 }
 
-int process_right_key(int board[][BOARD_SIZE])
-{
-    int i = 0;
-    int status = 0;
-    for (i = 0; i < BOARD_SIZE; i++)
-    {
-	status += process_row(board[i], RIGHT_KEY);
-    }
-    return status;
-}
-
-int process_up_key (int board[][BOARD_SIZE])
+int process_up_down_key (int board[][BOARD_SIZE], int key)
 {
     int row[BOARD_SIZE];
     int status = 0;
     int i,j;
 
+    if (key == UP_KEY)
+	key = LEFT_KEY;
+    else
+	key = RIGHT_KEY;
+
+    /* Idea is to put all elements in the column in an array
+     * Then UP key becomes LEFT and DOWN becomes RIGHT
+     * After processing copy the row back to column. */
     for (i = 0; i < BOARD_SIZE; i++)
     {
 	for (j = 0; j < BOARD_SIZE; j++)
 	{
 	    row[j] = board[j][i];
 	}
-	status += process_row(row, LEFT_KEY);
-	if (status)
-	{
-	    for (j = 0; j < BOARD_SIZE; j++)
-	    {
-		board[j][i] = row[j];
-	    }
-	}
-    }
-
-    return status;
-}
-
-int process_down_key(int board[][BOARD_SIZE])
-{
-    int row[BOARD_SIZE];
-    int status = 0;
-    int i,j;
-
-    for (i = 0; i < BOARD_SIZE; i++)
-    {
-	for (j = 0; j < BOARD_SIZE; j++)
-	{
-	    row[j] = board[j][i];
-	}
-	status += process_row(row, RIGHT_KEY);
+	status += process_row(row, key);
 	if (status)
 	{
 	    for (j = 0; j < BOARD_SIZE; j++)
@@ -290,18 +266,17 @@ int process_key (int board[][BOARD_SIZE], int key)
     switch (key)
     {
 	case LEFT_KEY:
-	    status = process_left_key(board);
+	    status = process_left_right_key(board, key);
 	    break;
 	case RIGHT_KEY:
-	    status = process_right_key(board);
+	    status = process_left_right_key(board, key);
 	    break;
 
 	case UP_KEY:
-	    status = process_up_key(board);
+	    status = process_up_down_key(board, key);
 	    break;
-
 	case DOWN_KEY:
-	    status = process_down_key(board);
+	    status = process_up_down_key(board, key);
 	    break;
 
 	default:
@@ -311,6 +286,9 @@ int process_key (int board[][BOARD_SIZE], int key)
     return status;
 }
 
+/******************************************************
+ * 	       Game Logic: New numbers on board	      *
+ *****************************************************/
 void add_extra_num(int board[][BOARD_SIZE])
 {
     int row, col;
@@ -332,6 +310,9 @@ void add_extra_num(int board[][BOARD_SIZE])
     }
 }
 
+/******************************************************
+ * 	       Game Logic: End Game		      *
+ *****************************************************/
 int check_if_merge_possible (int *board)
 {
     int i = 0;
@@ -401,13 +382,17 @@ int is_game_finished(int board[][BOARD_SIZE])
 
 }
 
+/******************************************************
+ * 	       Main Entry Point			      *
+ *****************************************************/
 int main()
 {
     int c;
     int finished = 0;
 
     init_screen();
-    start_new_board(g_board);
+    srand(getpid());
+    start_new_game(g_board);
     
     //Main Game loop
     do
@@ -422,7 +407,6 @@ int main()
 	    }
 	    printw("\nGame finished!\n");
 	}
-	//printw("\nChar is %d\n", c);
 	printw("\nHOW TO PLAY: Use your arrow keys to move the tiles. \n"
 		"When two tiles with the same number touch, they mergee into one!\n");
 	printw("\nPress Ctrl-C to exit any time. Press 'n' for new Game.\n");
@@ -436,7 +420,7 @@ int main()
 	    finished = 0;
 	    g_score = 0;
 	    g_won = 0;
-	    start_new_board(g_board);
+	    start_new_game(g_board);
 	}
 
 	if (!finished)
