@@ -168,22 +168,34 @@ int process_row (int *row, int key)
     int status = 0;
     if (key == LEFT_KEY)
     {
-	//We will go 3 passes through the row
-	//1. Put everything to left
-	//2. Merge everything if possible
-	//3. Again put everything to left if there is any space created because
+	//We will go 2 passes through the row
+	//1. Merge everything if possible
+	//2. Put everything to left if there is any space created because
 	//   of merge.
-	status = shift_all_left (row);
-	//Now try to merge everything
+	//Try to merge everything
 	for (i=0; i < BOARD_SIZE-1; i++)
 	{
-	    if (row[i] == row[i+1])
+	    int tmp = row[i];
+	    int tmp_ind = i;
+	    if (tmp == 0)
+		continue;
+	    /* tmp is non zero. Try to find next element which is of same value
+	     * which is separated by zero */
+	    for (; i < BOARD_SIZE-1; i++)
 	    {
-		row[i] *=  2;
+		if (row[i+1] == 0)
+		    continue;
+
+		if (tmp != row[i+1])
+		    break;
+
+		/* tmp == row[i] */
 		row[i+1] = 0;
-		g_score += row[i];
-		i++;
+		row[tmp_ind] *= 2;
+		g_score += row[tmp_ind];
 		status++;
+		/* Merge will happen only once for 2 elements */
+		break;
 	    }
 	}
 	//Again shift everything in left
@@ -191,23 +203,34 @@ int process_row (int *row, int key)
     }
     else
     {
-	//We will go 3 passes through the row
-	//1. Put everything to right
-	//2. Merge everything if possible
-	//3. Again put everything to right if there is any space created because
+	//We will go 2 passes through the row
+	//1. Merge everything if possible
+	//2. Put everything to right if there is any space created because
 	//   of merge.
 
-	status = shift_all_right (row);
-	//Now try to merge everything
+	//Try to merge everything
 	for (i = BOARD_SIZE-1; i>0; i--)
 	{
-	    if (row[i] == row[i-1])
+	    int tmp = row[i];
+	    int tmp_ind = i;
+
+	    if (tmp == 0)
+		continue;
+
+	    for(; i > 0; i--)
 	    {
-		row[i] *=  2;
+		if (row[i-1] == 0)
+		    continue;
+
+		if (tmp != row[i-1])
+		    break;
+
 		row[i-1] = 0;
-		g_score += row[i];
-		i--;
+		row[tmp_ind] *= 2;
+		g_score += row[tmp_ind];
 		status++;
+		/* Merge will happen only once for 2 elements */
+		break;
 	    }
 	}
 	status += shift_all_right(row);
@@ -425,6 +448,8 @@ int main()
 
 	if (!finished)
 	{
+	    /* We need to generate extra number only when there is movement or
+	     * merge happened */
 	    if (process_key (g_board, c))
 	    {
 		add_extra_num (g_board);
