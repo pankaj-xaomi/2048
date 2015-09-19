@@ -1,0 +1,20 @@
+This is a command line version of famous game 2048.
+
+To compile on linux:
+--------------------
+
+gcc -o 2048 2048.c -lncurses
+
+It will not compile on Windows because of ncurses library.
+I am working on making it compile on windows.
+
+TO Run:
+-------
+
+Run 2048 program and start playing.
+
+Press ctrl-C any time to exit.
+
+Press key 'n' to start a new Game
+
+Enjoy!
