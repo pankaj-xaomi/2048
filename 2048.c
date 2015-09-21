@@ -1,29 +1,15 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ncurses.h>
-#include <string.h>
-
-/******************************************************
- * 			Constants 		      *
- *****************************************************/
-#define BOARD_SIZE 	4
-
-#define WINNING_SCORE	2048
-
-#define LEFT_KEY	260
-#define RIGHT_KEY	261
-#define UP_KEY		259
-#define DOWN_KEY	258
-#define CTRL_C		3
-#define NEW_GAME	110
+#include "2048.h"
 
 /******************************************************
  * 		Global Variables	      	      *
  *****************************************************/
 int g_board[BOARD_SIZE][BOARD_SIZE];
+int g_saved_high_score;
+int g_high_score;
+int g_exit_game;
+int g_finished;
 int g_score;
 int g_won;
-
 
 /******************************************************
  * 	Functions for writing on screen       	      *
@@ -74,7 +60,7 @@ void print_board(int board[][BOARD_SIZE])
 
 void init_screen()
 {
-    WINDOW *win = initscr();
+    initscr();
     raw();
     keypad(stdscr, TRUE);
 }
@@ -109,6 +95,11 @@ void start_new_game (int board[][BOARD_SIZE])
 	board[row][col] = 2;
 	break;
     }
+
+    /* Reset some global variables */
+    g_won = 0;
+    g_score = 0;
+    g_finished = 0;
 }
 
 
@@ -170,7 +161,7 @@ int shift_all_right (int *row)
 
 int process_row (int *row, int key)
 {
-    int i = 0, j = 0;
+    int i = 0;
     int status = 0;
     if (key == LEFT_KEY)
     {
@@ -295,17 +286,27 @@ int process_key (int board[][BOARD_SIZE], int key)
     switch (key)
     {
 	case LEFT_KEY:
-	    status = process_left_right_key(board, key);
+	    status = g_finished ? 0 : process_left_right_key(board, key);
 	    break;
 	case RIGHT_KEY:
-	    status = process_left_right_key(board, key);
+	    status = g_finished ? 0 : process_left_right_key(board, key);
 	    break;
 
 	case UP_KEY:
-	    status = process_up_down_key(board, key);
+	    status = g_finished ? 0 : process_up_down_key(board, key);
 	    break;
 	case DOWN_KEY:
-	    status = process_up_down_key(board, key);
+	    status = g_finished ? 0 : process_up_down_key(board, key);
+	    break;
+
+	case CTRL_C_KEY:
+	    save_highest_score();
+	    g_exit_game = 1;
+	    break;
+
+	case NEW_GAME_KEY:
+	    save_highest_score ();
+	    start_new_game(board);
 	    break;
 
 	default:
@@ -417,18 +418,17 @@ int is_game_finished(int board[][BOARD_SIZE])
 int main()
 {
     int c;
-    int finished = 0;
-
     init_screen();
     srand(getpid());
+    g_saved_high_score = g_high_score = get_highest_score();
     start_new_game(g_board);
     
     //Main Game loop
     do
     {
 	print_board(g_board);
-	printw("\nScore: %d\n", g_score);
-	if (finished)
+	printw("\nScore: %8d\t\tHigh Score: %8d\n", g_score, g_high_score);
+	if (g_finished)
 	{
 	    if (g_won)
 	    {
@@ -438,32 +438,24 @@ int main()
 	}
 	printw("\nHOW TO PLAY: Use your arrow keys to move the tiles. \n"
 		"When two tiles with the same number touch, they mergee into one!\n");
-	printw("\nPress Ctrl-C to exit any time. Press 'n' for new Game.\n");
+	printw("Press 'n' for new Game.\n");
+	printw("Press 's' for saving the game\n");
+	printw("Press 'r' for resuming the saved game.\n");
+	printw("Press 'u' for undo (upto 5 last moves).\n");
+	printw("\nPress Ctrl-C to exit any time. \n");
+	//printw("\nGot char %d\n", c);
 	refresh();
 	c = getch();
-	if (c == CTRL_C)
-	    break;
-
-	if (c == NEW_GAME)
+	if (process_key(g_board, c))
 	{
-	    finished = 0;
-	    g_score = 0;
-	    g_won = 0;
-	    start_new_game(g_board);
+	    add_extra_num(g_board);
 	}
+	/* Update high score. */
+	g_high_score = (g_high_score < g_score) ? g_score : g_high_score;
+	g_finished = is_game_finished(g_board);
 
-	if (!finished)
-	{
-	    /* We need to generate extra number only when there is movement or
-	     * merge happened */
-	    if (process_key (g_board, c))
-	    {
-		add_extra_num (g_board);
-	    }
-	    finished = is_game_finished(g_board);
-	}
 	erase();
-    } while (1);
+    } while (g_exit_game == 0);
 
     endwin();
 

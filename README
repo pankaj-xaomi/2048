@@ -1,9 +1,9 @@
 This is a command line version of famous game 2048.
 
-To compile on linux:
+To compile on linux, run following command:
 --------------------
 
-gcc -o 2048 2048.c -lncurses
+make
 
 It will not compile on Windows because of ncurses library.
 I am working on making it compile on windows.
