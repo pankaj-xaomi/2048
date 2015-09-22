@@ -309,6 +309,14 @@ int process_key (int board[][BOARD_SIZE], int key)
 	    start_new_game(board);
 	    break;
 
+	case SAVE_GAME_KEY:
+	    save_game_data(g_board, g_score);
+	    break;
+
+	case RESUME_GAME_KEY:
+	    load_game_data(g_board, &g_score);
+	    break;
+
 	default:
 	    break;
     }

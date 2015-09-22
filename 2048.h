@@ -16,6 +16,8 @@
  *****************************************************/
 #define BOARD_SIZE 	4
 
+#define MAGIC_2048	2048
+
 #define WINNING_SCORE	2048
 
 #define LEFT_KEY	260
@@ -45,5 +47,7 @@ extern int g_won;
 
 void save_highest_score();
 int get_highest_score();
+void save_game_data(int board[][BOARD_SIZE], int score);
+int load_game_data(int board[][BOARD_SIZE], int *p_score);
 
 #endif /* #ifndef __2048_H__ */
