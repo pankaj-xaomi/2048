@@ -4,8 +4,11 @@
  * 		Global Variables	      	      *
  *****************************************************/
 int g_board[BOARD_SIZE][BOARD_SIZE];
+int g_tmp_board[BOARD_SIZE][BOARD_SIZE];
 int g_saved_high_score;
+int g_tmp_high_score;
 int g_high_score;
+int g_tmp_score;
 int g_exit_game;
 int g_finished;
 int g_score;
@@ -100,6 +103,10 @@ void start_new_game (int board[][BOARD_SIZE])
     g_won = 0;
     g_score = 0;
     g_finished = 0;
+    g_undo_level = 0;
+    g_undo_index = 0;
+
+    //undo_init_board (g_board, g_score, g_high_score);
 }
 
 
@@ -317,6 +324,9 @@ int process_key (int board[][BOARD_SIZE], int key)
 	    load_game_data(g_board, &g_score);
 	    break;
 
+	case UNDO_GAME_KEY:
+	    undo_game(g_board, &g_score, &g_high_score);
+
 	default:
 	    break;
     }
@@ -435,7 +445,9 @@ int main()
     do
     {
 	print_board(g_board);
-	printw("\nScore: %8d\t\tHigh Score: %8d\n", g_score, g_high_score);
+	printw("\nScore: \t\t%8d\n", g_score);
+	printw("High Score: \t%8d\n", g_high_score);
+	printw("\nMax UNDO possible: %2d\n", g_undo_level);
 	if (g_finished)
 	{
 	    if (g_won)
@@ -448,15 +460,19 @@ int main()
 		"When two tiles with the same number touch, they mergee into one!\n");
 	printw("Press 'n' for new Game.\n");
 	printw("Press 's' for saving the game\n");
-	printw("Press 'r' for resuming the saved game.\n");
-	printw("Press 'u' for undo (upto 5 last moves).\n");
+	printw("Press 'l' for loading a saved game.\n");
+	printw("Press 'u' for undo (upto %d last moves).\n", MAX_LEVEL_UNDO);
 	printw("\nPress Ctrl-C to exit any time. \n");
 	//printw("\nGot char %d\n", c);
 	refresh();
 	c = getch();
+	copy_game_data(g_board, g_tmp_board);	
+	g_tmp_score = g_score;
+	g_tmp_high_score = g_high_score;
 	if (process_key(g_board, c))
 	{
 	    add_extra_num(g_board);
+	    add_undo_level(g_tmp_board, g_tmp_score, g_tmp_high_score);
 	}
 	/* Update high score. */
 	g_high_score = (g_high_score < g_score) ? g_score : g_high_score;
